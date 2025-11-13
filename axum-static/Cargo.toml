@@ -1,17 +1,21 @@
 [package]
-name = "axum_static"
-version = "1.7.1"
-edition = "2021"
-authors = ["myyrakle <sssang97@naver.com>"]
-description = "static file serving router for axum server"
-keywords = ["axum", "static", "file", "serve"]
-license = "MIT"
-include = ["src/lib.rs", "Cargo.toml", "docs"]
-readme = "./../README.md"
-repository = "https://github.com/myyrakle/axum_static"                          
-documentation = "https://github.com/myyrakle/axum_static/blob/master/README.md" 
-homepage = "https://github.com/myyrakle/axum_static/blob/master/README.md"      
+  name = "axum_static"
+  version = "1.8.6"
+  edition = "2024"
+  description = "static file serving router for axum server"
+  documentation = "https://docs.rs/axum_static"
+  readme = "./../README.md"
+  repository = "https://github.com/azzybana/axum_static"
+  license = "MIT"
+  keywords = ["axum", "file", "serve", "static"]
+  include = ["Cargo.toml", "docs", "src/lib.rs"]
+
+[package.metadata]
+  authors = [
+    "myyrakle <sssang97@naver.com>",
+    "Azzybana Raccoon <121582001+Azzybana@users.noreply.github.com>"
+  ]
 
 [dependencies]
-axum = "0.7.4"
-tower-http = { version = "0.5.1", features = ["fs"] }
+  axum = "0.8.6"
+  tower-http = { version = "0.6.6", features = ["fs"] }
