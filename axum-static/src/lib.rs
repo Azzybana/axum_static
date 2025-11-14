@@ -6,6 +6,8 @@ use axum::{
     response::Response,
     routing::get_service,
 };
+#[cfg(feature = "handle_error")]
+use std::io;
 use std::path::Path;
 use tower_http::services::ServeDir;
 
@@ -91,7 +93,7 @@ pub async fn content_type_middleware(request: Request<Body>, next: Next) -> Resp
 
 pub fn static_router<P: AsRef<Path>>(path: P) -> Router {
     #[cfg(feature = "handle_error")]
-    async fn handle_error(err: std::io::Error) -> impl IntoResponse {
+    async fn handle_error(err: io::Error) -> impl IntoResponse {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("static router IO error: {:?}", err),
