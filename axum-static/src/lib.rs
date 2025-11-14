@@ -1,10 +1,10 @@
 use axum::{
+    Router,
     body::Body,
     http::Request,
-    middleware::{from_fn, Next},
+    middleware::{Next, from_fn},
     response::Response,
     routing::get_service,
-    Router,
 };
 use std::path::Path;
 use tower_http::services::ServeDir;
@@ -114,9 +114,7 @@ pub fn static_router<P: AsRef<Path>>(path: P) -> Router {
     let serve_dir = ServeDir::new(path).append_index_html_on_directories(true);
     let serve_dir = get_service(serve_dir); //.handle_error(handle_error);
 
-    let router = Router::new()
+    Router::new()
         .fallback_service(serve_dir)
-        .layer(from_fn(content_type_middleware));
-
-    router
+        .layer(from_fn(content_type_middleware))
 }
