@@ -11,6 +11,7 @@
   include = ["Cargo.toml", "docs", "src/lib.rs"]
 
 [package.metadata]
+  docs.rs = { all-features = true }
   authors = [
     "myyrakle <sssang97@naver.com>",
     "Azzybana Raccoon <121582001+Azzybana@users.noreply.github.com>"
