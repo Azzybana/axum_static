@@ -22,7 +22,10 @@
   tower-http = { version = "0.6.6", features = ["fs"] }
   mime_guess = { version = "2.0.5", optional = true }
   status_code = { version = "0.1.0", optional = true }
-
+  tracing = { version = "0.1", optional = true }
+  tracing-subscriber = { version = "0.3", features = [
+    "env-filter"
+  ], optional = true }
 [lints.clippy]
   correctness = "deny"
   suspicious = "deny"
@@ -36,3 +39,4 @@
   handle_error = []
   mime_guess = ["dep:mime_guess"]
   status_code = ["dep:status_code", "handle_error"]
+  tracing = ["dep:tracing", "dep:tracing-subscriber"]
