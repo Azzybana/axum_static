@@ -19,3 +19,11 @@
 [dependencies]
   axum = "0.8.6"
   tower-http = { version = "0.6.6", features = ["fs"] }
+
+[lints.clippy]
+  correctness = "deny"
+  suspicious = "deny"
+  style = "deny"
+  complexity = "deny"
+  perf = "deny"
+  pedantic = "deny"
