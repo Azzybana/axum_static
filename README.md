@@ -25,6 +25,15 @@ let app = Router::new()
         .nest("/", axum_static::static_router("public"))
 ```
 
+## Features
+
+- `handle_error`: Adds graceful IO error responses via `tower_http`'s `handle_error` hook.
+- `mime_guess`: Swaps the manual extension map for `mime_guess` so content-types stay current automatically.
+- `status_code`: Builds on `handle_error` to include human-readable status text in error responses.
+- `tracing`: Emits structured `warn!` logs for unknown MIME types and `error!` logs for IO failures.
+
+## State
+
 If your app has state, [you'll need to add](https://docs.rs/axum/latest/axum/routing/struct.Router.html#nesting-routers-with-state) `with_state`, because static_router does not use state (`()`):
 
 ```
@@ -40,14 +49,6 @@ The argument of the `static_router` function is the path to read static files ba
 
 Then you can read the file like this. It can also be a sub directory.
 ![](docs/1.png)
-
-## Features
-
-- `handle_error`: Adds graceful IO error responses via `tower_http`'s `handle_error` hook.
-- `mime_guess`: Swaps the manual extension map for `mime_guess` so content-types stay current automatically.
-- `status_code`: Builds on `handle_error` to include human-readable status text in error responses.
-- `tracing`: Emits structured `warn!` logs for unknown MIME types and `error!` logs for IO failures.
-
 ![](docs/2.png)
 
 This is the end.
