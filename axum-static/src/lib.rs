@@ -37,6 +37,9 @@ use std::io;
 use std::path::Path;
 use tower_http::services::ServeDir;
 
+#[cfg(feature = "tracing")]
+use tracing::{error, warn};
+
 #[cfg(not(feature = "mime_guess"))]
 fn infer_content_type_from_extension(extension: &str) -> &'static str {
     match extension {
@@ -117,17 +120,29 @@ pub async fn content_type_middleware(request: Request<Body>, next: Next) -> Resp
     let mut response = next.run(request).await;
 
     #[cfg(feature = "mime_guess")]
-    let content_type = mime_guess::from_path(path).first_raw().unwrap_or_else(|| {
-        if extension.is_some() {
-            "application/octet-stream"
-        } else {
-            "unknown"
+    let content_type = {
+        let guessed = mime_guess::from_path(path).first_raw();
+        match (guessed, extension.as_deref()) {
+            (Some(mime), _) => mime,
+            (None, Some(ext)) => {
+                #[cfg(feature = "tracing")]
+                warn!(%path, %ext, "Unknown MIME type; defaulting to application/octet-stream");
+                "application/octet-stream"
+            }
+            (None, None) => "unknown",
         }
-    });
+    };
 
     #[cfg(not(feature = "mime_guess"))]
     let content_type = match extension.as_deref() {
-        Some(ext) => infer_content_type_from_extension(ext),
+        Some(ext) => {
+            let mime = infer_content_type_from_extension(ext);
+            #[cfg(feature = "tracing")]
+            if mime == "application/octet-stream" {
+                warn!(%path, %ext, "Unknown MIME type; defaulting to application/octet-stream");
+            }
+            mime
+        }
         None => "unknown",
     };
 
@@ -167,22 +182,27 @@ pub fn static_router<P: AsRef<Path>>(path: P) -> Router {
     #[cfg(feature = "handle_error")]
     async fn handle_error(err: io::Error) -> impl IntoResponse {
         #[cfg(feature = "status_code")]
-        {
+        let (status, body) = {
             let status = StatusCode::INTERNAL_SERVER_ERROR;
             let code = status.as_u16();
             let label = statuses::code(code);
             let body = format!("static router IO error ({} {}): {:?}", code, label, err);
-            return (status, body).into_response();
-        }
+            (status, body)
+        };
 
         #[cfg(not(feature = "status_code"))]
+        let (status, body) = {
+            let status = StatusCode::INTERNAL_SERVER_ERROR;
+            let body = format!("static router IO error: {:?}", err);
+            (status, body)
+        };
+
+        #[cfg(feature = "tracing")]
         {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("static router IO error: {:?}", err),
-            )
-                .into_response();
+            error!(%body, error = %err, "static router IO error");
         }
+
+        (status, body).into_response()
     }
 
     let serve_dir = ServeDir::new(path).append_index_html_on_directories(true);
