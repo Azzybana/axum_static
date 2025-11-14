@@ -92,6 +92,9 @@ pub async fn content_type_middleware(request: Request<Body>, next: Next) -> Resp
 }
 
 pub fn static_router<P: AsRef<Path>>(path: P) -> Router {
+    /// Error handler for IO errors when serving static files.
+    /// This function is only available when the `handle_error` feature is enabled.
+    /// It returns a 500 Internal Server Error with the error message.
     #[cfg(feature = "handle_error")]
     async fn handle_error(err: io::Error) -> impl IntoResponse {
         (
