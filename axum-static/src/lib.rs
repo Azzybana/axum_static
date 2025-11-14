@@ -13,14 +13,13 @@ pub async fn content_type_middleware(request: Request<Body>, next: Next) -> Resp
     let uri = request.uri().to_owned();
     let path = uri.path();
 
-    let splited = path.split('.').collect::<Vec<_>>();
+    // Extract the extension before awaiting to avoid holding a borrow across await points.
+    let extension = path.rsplit('.').next().map(str::to_ascii_lowercase);
 
     let mut response = next.run(request).await;
 
-    let content_type = if let Some(ext) = splited.last() {
-        let extension = ext.to_owned().to_lowercase();
-
-        match extension.as_str() {
+    let content_type = if let Some(ext) = extension {
+        match ext.as_str() {
             "html" => "text/html",
             "css" => "text/css",
             "js" => "text/javascript",
