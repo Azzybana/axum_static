@@ -8,6 +8,7 @@
 //!
 //! - `handle_error`: Enables error handling for IO errors when serving files.
 //! - `mime_guess`: Uses the `mime_guess` crate for exhaustive MIME inference.
+//! - `status_code`: Enhances error responses with human-readable status messages.
 //!
 //! ## Example
 //!
@@ -19,6 +20,8 @@
 
 #[cfg(feature = "handle_error")]
 use axum::http::StatusCode;
+#[cfg(feature = "handle_error")]
+use axum::response::IntoResponse;
 use axum::{
     Router,
     body::Body,
@@ -27,6 +30,8 @@ use axum::{
     response::Response,
     routing::get_service,
 };
+#[cfg(all(feature = "handle_error", feature = "status_code"))]
+use status_code::statuses;
 #[cfg(feature = "handle_error")]
 use std::io;
 use std::path::Path;
@@ -161,11 +166,23 @@ pub fn static_router<P: AsRef<Path>>(path: P) -> Router {
     /// This function is only available when the `handle_error` feature is enabled.
     #[cfg(feature = "handle_error")]
     async fn handle_error(err: io::Error) -> impl IntoResponse {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("static router IO error: {:?}", err),
-        )
-            .into_response()
+        #[cfg(feature = "status_code")]
+        {
+            let status = StatusCode::INTERNAL_SERVER_ERROR;
+            let code = status.as_u16();
+            let label = statuses::code(code);
+            let body = format!("static router IO error ({} {}): {:?}", code, label, err);
+            return (status, body).into_response();
+        }
+
+        #[cfg(not(feature = "status_code"))]
+        {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("static router IO error: {:?}", err),
+            )
+                .into_response();
+        }
     }
 
     let serve_dir = ServeDir::new(path).append_index_html_on_directories(true);
