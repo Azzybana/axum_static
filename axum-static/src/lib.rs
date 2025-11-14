@@ -1,3 +1,23 @@
+//! # `axum_static`
+//!
+//! Static file serving for Axum.
+//!
+//! This crate provides utilities for serving static files with proper content-type inference.
+//!
+//! ## Features
+//!
+//! - `handle_error`: Enables error handling for IO errors when serving files.
+//!
+//! ## Example
+//!
+//! ```rust
+//! use axum_static::static_router;
+//!
+//! let app = static_router("static/");
+//! ```
+
+#[cfg(feature = "handle_error")]
+use axum::http::StatusCode;
 use axum::{
     Router,
     body::Body,
@@ -11,6 +31,13 @@ use std::io;
 use std::path::Path;
 use tower_http::services::ServeDir;
 
+/// Middleware that sets the `Content-Type` header based on the file extension.
+///
+/// This middleware inspects the request URI's path, extracts the file extension,
+/// and maps it to the appropriate MIME type. If no extension is found or it's unknown,
+/// it defaults to "application/octet-stream".
+///
+/// Note: This does not override an existing `Content-Type` header.
 pub async fn content_type_middleware(request: Request<Body>, next: Next) -> Response {
     let uri = request.uri().to_owned();
     let path = uri.path();
@@ -91,10 +118,32 @@ pub async fn content_type_middleware(request: Request<Body>, next: Next) -> Resp
     response
 }
 
+/// Creates a router that serves static files from the given directory.
+///
+/// The router uses `tower_http::services::ServeDir` to serve files, with index.html
+/// appended for directories. It applies the `content_type_middleware` to set appropriate
+/// content types.
+///
+/// # Arguments
+///
+/// * `path` - The path to the directory containing static files.
+///
+/// # Features
+///
+/// When the `handle_error` feature is enabled, IO errors are handled by returning
+/// a 500 Internal Server Error response.
 pub fn static_router<P: AsRef<Path>>(path: P) -> Router {
     /// Error handler for IO errors when serving static files.
+    ///
+    /// This function returns a 500 Internal Server Error response with the error message.
+    ///
+    /// # Arguments
+    ///
+    /// * `err` - The IO error that occurred.
+    ///
+    /// # Features
+    ///
     /// This function is only available when the `handle_error` feature is enabled.
-    /// It returns a 500 Internal Server Error with the error message.
     #[cfg(feature = "handle_error")]
     async fn handle_error(err: io::Error) -> impl IntoResponse {
         (
