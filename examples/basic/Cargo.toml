@@ -4,8 +4,8 @@
     edition = "2024"
 
 [dependencies]
-    axum = { workspace = true }
-    axum_static = { workspace = true }
+    axum = "0.8.6"
+    axum_static = { path = "../../axum-static" }
     tokio = { version = "1", features = ["full"] }
     tracing = "0.1"
     tracing-subscriber = { version = "0.3", features = [
