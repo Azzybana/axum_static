@@ -7,6 +7,7 @@
 //! ## Features
 //!
 //! - `handle_error`: Enables error handling for IO errors when serving files.
+//! - `mime_guess`: Uses the `mime_guess` crate for exhaustive MIME inference.
 //!
 //! ## Example
 //!
@@ -31,6 +32,69 @@ use std::io;
 use std::path::Path;
 use tower_http::services::ServeDir;
 
+#[cfg(not(feature = "mime_guess"))]
+fn infer_content_type_from_extension(extension: &str) -> &'static str {
+    match extension {
+        "html" => "text/html",
+        "css" => "text/css",
+        "js" => "text/javascript",
+        "json" => "application/json",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "svg" => "image/svg+xml",
+        "ico" => "image/x-icon",
+        "ttf" => "font/ttf",
+        "woff" => "font/woff",
+        "woff2" => "font/woff2",
+        "eot" => "application/vnd.ms-fontobject",
+        "otf" => "font/otf",
+        "txt" => "text/plain",
+        "pdf" => "application/pdf",
+        "doc" => "application/msword",
+        "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "xls" => "application/vnd.ms-excel",
+        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "ppt" => "application/vnd.ms-powerpoint",
+        "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "xml" => "application/xml",
+        "zip" => "application/zip",
+        "rar" => "application/x-rar-compressed",
+        "7z" => "application/x-7z-compressed",
+        "gz" => "application/gzip",
+        "tar" => "application/x-tar",
+        "swf" => "application/x-shockwave-flash",
+        "flv" => "video/x-flv",
+        "avi" => "video/x-msvideo",
+        "mov" => "video/quicktime",
+        "mp4" | "f4v" | "f4p" | "f4a" | "f4b" => "video/mp4",
+        "mp3" => "audio/mpeg",
+        "wav" => "audio/x-wav",
+        "ogg" => "audio/ogg",
+        "webm" => "video/webm",
+        "mpg" | "mpeg" | "mpe" | "mp2" => "video/mpeg",
+        "m4v" => "video/x-m4v",
+        "3gp" => "video/3gpp",
+        "3g2" => "video/3gpp2",
+        "mkv" | "amv" => "video/x-matroska",
+        "m3u" => "audio/x-mpegurl",
+        "m3u8" => "application/vnd.apple.mpegurl",
+        "ts" => "video/mp2t",
+        "webp" => "image/webp",
+        "bmp" => "image/bmp",
+        "tif" | "tiff" => "image/tiff",
+        "psd" => "image/vnd.adobe.photoshop",
+        "ai" | "eps" | "ps" => "application/postscript",
+        "dwg" => "image/vnd.dwg",
+        "dxf" => "image/vnd.dxf",
+        "rtf" => "application/rtf",
+        "odt" => "application/vnd.oasis.opendocument.text",
+        "ods" => "application/vnd.oasis.opendocument.spreadsheet",
+        "wasm" => "application/wasm",
+        _ => "application/octet-stream",
+    }
+}
+
 /// Middleware that sets the `Content-Type` header based on the file extension.
 ///
 /// This middleware inspects the request URI's path, extracts the file extension,
@@ -47,68 +111,19 @@ pub async fn content_type_middleware(request: Request<Body>, next: Next) -> Resp
 
     let mut response = next.run(request).await;
 
-    let content_type = if let Some(ext) = extension {
-        match ext.as_str() {
-            "html" => "text/html",
-            "css" => "text/css",
-            "js" => "text/javascript",
-            "json" => "application/json",
-            "png" => "image/png",
-            "jpg" | "jpeg" => "image/jpeg",
-            "gif" => "image/gif",
-            "svg" => "image/svg+xml",
-            "ico" => "image/x-icon",
-            "ttf" => "font/ttf",
-            "woff" => "font/woff",
-            "woff2" => "font/woff2",
-            "eot" => "application/vnd.ms-fontobject",
-            "otf" => "font/otf",
-            "txt" => "text/plain",
-            "pdf" => "application/pdf",
-            "doc" => "application/msword",
-            "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "xls" => "application/vnd.ms-excel",
-            "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "ppt" => "application/vnd.ms-powerpoint",
-            "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            "xml" => "application/xml",
-            "zip" => "application/zip",
-            "rar" => "application/x-rar-compressed",
-            "7z" => "application/x-7z-compressed",
-            "gz" => "application/gzip",
-            "tar" => "application/x-tar",
-            "swf" => "application/x-shockwave-flash",
-            "flv" => "video/x-flv",
-            "avi" => "video/x-msvideo",
-            "mov" => "video/quicktime",
-            "mp4" | "f4v" | "f4p" | "f4a" | "f4b" => "video/mp4",
-            "mp3" => "audio/mpeg",
-            "wav" => "audio/x-wav",
-            "ogg" => "audio/ogg",
-            "webm" => "video/webm",
-            "mpg" | "mpeg" | "mpe" | "mp2" => "video/mpeg",
-            "m4v" => "video/x-m4v",
-            "3gp" => "video/3gpp",
-            "3g2" => "video/3gpp2",
-            "mkv" | "amv" => "video/x-matroska",
-            "m3u" => "audio/x-mpegurl",
-            "m3u8" => "application/vnd.apple.mpegurl",
-            "ts" => "video/mp2t",
-            "webp" => "image/webp",
-            "bmp" => "image/bmp",
-            "tif" | "tiff" => "image/tiff",
-            "psd" => "image/vnd.adobe.photoshop",
-            "ai" | "eps" | "ps" => "application/postscript",
-            "dwg" => "image/vnd.dwg",
-            "dxf" => "image/vnd.dxf",
-            "rtf" => "application/rtf",
-            "odt" => "application/vnd.oasis.opendocument.text",
-            "ods" => "application/vnd.oasis.opendocument.spreadsheet",
-            "wasm" => "application/wasm",
-            _ => "application/octet-stream",
+    #[cfg(feature = "mime_guess")]
+    let content_type = mime_guess::from_path(path).first_raw().unwrap_or_else(|| {
+        if extension.is_some() {
+            "application/octet-stream"
+        } else {
+            "unknown"
         }
-    } else {
-        "unknown"
+    });
+
+    #[cfg(not(feature = "mime_guess"))]
+    let content_type = match extension.as_deref() {
+        Some(ext) => infer_content_type_from_extension(ext),
+        None => "unknown",
     };
 
     if let Ok(content_type) = content_type.parse() {
