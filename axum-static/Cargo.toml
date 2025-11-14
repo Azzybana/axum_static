@@ -27,3 +27,7 @@
   complexity = "deny"
   perf = "deny"
   pedantic = "deny"
+
+[features]
+  default = []
+  handle_error = []

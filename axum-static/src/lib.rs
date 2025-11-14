@@ -90,16 +90,20 @@ pub async fn content_type_middleware(request: Request<Body>, next: Next) -> Resp
 }
 
 pub fn static_router<P: AsRef<Path>>(path: P) -> Router {
-    // async fn handle_error(err: std::io::Error) -> impl IntoResponse {
-    //     (
-    //         StatusCode::INTERNAL_SERVER_ERROR,
-    //         format!("static router IO error: {:?}", err),
-    //     )
-    //         .into_response()
-    // }
+    #[cfg(feature = "handle_error")]
+    async fn handle_error(err: std::io::Error) -> impl IntoResponse {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("static router IO error: {:?}", err),
+        )
+            .into_response()
+    }
 
     let serve_dir = ServeDir::new(path).append_index_html_on_directories(true);
-    let serve_dir = get_service(serve_dir); //.handle_error(handle_error);
+    #[cfg(feature = "handle_error")]
+    let serve_dir = get_service(serve_dir).handle_error(handle_error);
+    #[cfg(not(feature = "handle_error"))]
+    let serve_dir = get_service(serve_dir);
 
     Router::new()
         .fallback_service(serve_dir)
